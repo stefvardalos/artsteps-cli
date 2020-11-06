@@ -36,6 +36,17 @@ const getUsers = ( userMails = []) => {
                 .find( query )
                 .toArray();
         })
+        .then( (usersObjects ) => {
+            usersObjects.sort( (a, b) => {
+                const A = a.emails[0].address, B = b.emails[0].address;
+                if (userMails.indexOf(A) > userMails.indexOf(B)) {
+                    return 1;
+                } else {
+                    return -1;
+                }
+            });
+            return Promise.resolve(usersObjects);
+        })
         .catch((err) => {
             console.log(err);
         })
@@ -164,6 +175,15 @@ const cloneExhibition = ( exhibitionObject , oldUserID , newUserID , newExhibiti
                 .toArray()
                 .then((savedArtifacts) => {
 
+                    savedArtifacts.sort( (a, b) => {
+                        const A = a._id, B = b._id;
+                        if (artifactIDs.indexOf(A) > artifactIDs.indexOf(B)) {
+                            return 1;
+                        } else {
+                            return -1;
+                        }
+                    });
+
                     savedArtifacts.forEach((savedArtifact) => {
                         const newArtifactId = new ObjectId();
                         idsMap[savedArtifact._id] = newArtifactId;
@@ -227,6 +247,17 @@ const cloneExhibition = ( exhibitionObject , oldUserID , newUserID , newExhibiti
                         .toArray();
                 })
                 .then((userRemoteTextures) => {
+
+
+                    userRemoteTextures.sort( (a, b) => {
+                        const A = a.file.uri, B = b.file.uri;
+                        if (uniqueRemoteUrls.indexOf(A) > uniqueRemoteUrls.indexOf(B)) {
+                            return 1;
+                        } else {
+                            return -1;
+                        }
+                    });
+
                     userRemoteTextures.forEach(remoteTexture => {
                         remoteTexture._id = new ObjectId();
                         remoteTexture.user = newUserID;
@@ -250,6 +281,17 @@ const cloneExhibition = ( exhibitionObject , oldUserID , newUserID , newExhibiti
                         } )
                 })
                 .then((userCustomTextures) => {
+
+
+                    userCustomTextures.sort( (a, b) => {
+                        const A = a._id, B = b._id;
+                        if (uniqueCustomTextures.indexOf(A) > uniqueCustomTextures.indexOf(B)) {
+                            return 1;
+                        } else {
+                            return -1;
+                        }
+                    });
+
                     userCustomTextures.forEach(customTexture => {
                         const oldID = customTexture._id;
                         customTexture._id = new ObjectId();
