@@ -280,16 +280,16 @@ program
                             }
                         } else {
                             if (options.hasOwnProperty('pretty') && options.pretty === true) {
-                                console.log(chalk.blue(privateSpace.space.title))
-                                console.log(chalk.blue(privateSpace.space.description))
-                                console.log(chalk.blue(privateSpace.space.subtitle))
-                                if (privateSpace.space.hasOwnProperty('isActive') && privateSpace.space.isActive) {
+                                console.log(chalk.blue(privateSpace.info.title))
+                                console.log(chalk.blue(privateSpace.info.description))
+                                console.log(chalk.blue(privateSpace.info.subtitle))
+                                if (privateSpace.info.hasOwnProperty('isActive') && privateSpace.info.isActive) {
                                     console.log(chalk.green('Is Active'));
                                 } else {
                                     console.log(chalk.red('Is Not Active'));
                                 }
-                                if (privateSpace.space.hasOwnProperty('templates')) {
-                                    console.log(chalk.blue(privateSpace.space.templates.length + ' Templates'))
+                                if (privateSpace.info.hasOwnProperty('templates')) {
+                                    console.log(chalk.blue(privateSpace.info.templates.length + ' Templates'))
                                 }
 
                                 if (needUsers) {
