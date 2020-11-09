@@ -24,12 +24,12 @@ const test = () => {
         })
 }
 
-const getUsers = ( userMails = [] , privateSpaceID = '') => {
+const getUsers = ( userMails = [] , privateSpaceID) => {
     let query = {};
-    if (userMails.length) {
+    if (userMails.length > 0) {
         query = Object.assign( query , {  'emails.0.address' : { $in: userMails } } )
     }
-    if (privateSpaceID.length > 0) {
+    if (privateSpaceID) {
         query = Object.assign( query , { 'spaces' : privateSpaceID })
     }
     return connectDB()

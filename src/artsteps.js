@@ -253,7 +253,7 @@ program
                         } else {
                             privateSpace.info = spaces[0];
                             if ( needUsers ) {
-                                return mongoService.getUsers([] , privateSpace.subdomain );
+                                return mongoService.getUsers([] , privateSpace.info._id );
                             } else {
                                 return Promise.resolve([]);
                             }
@@ -280,20 +280,20 @@ program
                             }
                         } else {
                             if (options.hasOwnProperty('pretty') && options.pretty === true) {
-                                console.log(chalk.blue(privateSpace.info.title))
-                                console.log(chalk.blue(privateSpace.info.description))
-                                console.log(chalk.blue(privateSpace.info.subtitle))
+                                console.log('Title : ' + chalk.blue(privateSpace.info.title))
+                                console.log('Description : ' + chalk.blue(privateSpace.info.description))
+                                console.log('SubTitle : ' + chalk.blue(privateSpace.info.subtitle))
                                 if (privateSpace.info.hasOwnProperty('isActive') && privateSpace.info.isActive) {
-                                    console.log(chalk.green('Is Active'));
+                                    console.log('Status : ' + chalk.green('Is Active'));
                                 } else {
-                                    console.log(chalk.red('Is Not Active'));
+                                    console.log('Status : ' + chalk.red('Is Not Active'));
                                 }
                                 if (privateSpace.info.hasOwnProperty('templates')) {
-                                    console.log(chalk.blue(privateSpace.info.templates.length + ' Templates'))
+                                    console.log('Templates : ' + chalk.blue(privateSpace.info.templates.length + ' Templates'))
                                 }
 
                                 if (needUsers) {
-                                    console.log(privateSpace.users.length + ' Registered Users');
+                                    console.log('Users : ' + chalk.blue(privateSpace.users.length) + chalk.green(' Registered Users') );
                                 }
 
                             } else {
