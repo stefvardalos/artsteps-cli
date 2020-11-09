@@ -30,13 +30,10 @@ program
     .option('-b, --bool ', 'bool for testing')
     .action( ( options ) => {
 
-        if (settingsService.checkSettings()){
-            if (options.hasOwnProperty('bool') && options.bool === true) {
-                console.log( settingsService.getSetting('test' ) );
-            } else {
-                settingsService.setSetting('test' , false);
-                console.log('SAVED!');
-            }
+        if (settingsService.checkSettings()) {
+            console.log(chalk.green('All Setup'));
+        } else {
+            console.log(chalk.green('No Setup'));
         }
 
     });
@@ -181,6 +178,138 @@ program
                 .finally(() => {
                     mongoService.closeDB();
                 })
+        }
+
+    });
+
+
+program
+    .command('getPrivateSpaces')
+    .description('Get All Private Spaces on Environment')
+    .option('-s, --saveFile', 'Save to specific File')
+    .option('-j, --json ', 'Export to JSON data')
+    .option('-c, --csv ', 'Export to CSV data')
+    .option('-p, --pretty ', 'Pretty print data')
+    .action( ( options ) => {
+
+        if (settingsService.checkSettings()) {
+            mongoService.getSpaces()
+                .then((spaces) => {
+                    if (options.hasOwnProperty('saveFile') && options.saveFile === true) {
+                        if ( options.hasOwnProperty('csv') && options.csv === true) {
+                            return Promise.all([
+                                exportsService.saveFile( JSON.stringify(spaces) , 'csv' , 'spaces.' + 'csv' ) ,
+                            ])
+                        } else {
+                            return Promise.all([
+                                exportsService.saveFile( JSON.stringify(spaces) , 'json' , 'subscribers.' + 'json' ) ,
+                            ])
+                        }
+                    } else {
+                        if (options.hasOwnProperty('pretty') && options.pretty === true) {
+                            console.log(chalk.blue('Found ' + spaces.length + ' Private Spaces'));
+                            spaces.forEach((space) => {
+                                let spaceText = chalk.blue(space.subdomain) + ' : ';
+                                if ( space.isActive ) {
+                                    spaceText = spaceText + chalk.green('Active');
+                                } else {
+                                    spaceText = spaceText + chalk.red('inActive');
+                                }
+                                console.log(spaceText)
+                            })
+                        } else {
+                            console.log(JSON.stringify(spaces) )
+                        }
+                    }
+                })
+                .catch((err) => {
+                    console.log(err);
+                })
+                .finally(() => {
+                    mongoService.closeDB();
+                })
+        }
+
+    });
+program
+    .command('getPrivateSpace')
+    .description('Get Details of a Private Spaces on Environment')
+    .option('-s, --subdomain [subdomain]', 'Private Space subdomain')
+    .option('-i, --info', 'Private Space Info')
+    .option('-u, --users ', 'Private Space Users')
+    .option('-j, --json ', 'Export to JSON data')
+    .option('-c, --csv ', 'Export to CSV data')
+    .option('-p, --pretty ', 'Pretty print data')
+    .action( ( options ) => {
+
+        if (settingsService.checkSettings()) {
+            if (options.hasOwnProperty('subdomain') && options.subdomain.length > 0) {
+                const privateSpace = {};
+                const needUsers = options.hasOwnProperty('users') && options.users === true;
+                mongoService.getSpaces( options.subdomain )
+                    .then((spaces) => {
+                        if (spaces.length === 0) {
+                            throw chalk.red('Private space with subdomain ' + options.subdomain + ' wasnt found!');
+                        } else {
+                            privateSpace.info = spaces[0];
+                            if ( needUsers ) {
+                                return mongoService.getUsers([] , privateSpace.subdomain );
+                            } else {
+                                return Promise.resolve([]);
+                            }
+                        }
+                    })
+                    .then((users) => {
+                        privateSpace.users = users;
+
+                        if (options.hasOwnProperty('saveFile') && options.saveFile === true) {
+                            if ( options.hasOwnProperty('csv') && options.csv === true) {
+                                return Promise.all([
+                                    ...Object.keys(privateSpace)
+                                        .map(
+                                            (key) => exportsService.saveFile( JSON.stringify(privateSpace[key]) , 'csv' , key + '.' + 'csv' )
+                                        )
+                                ])
+                            } else {
+                                return Promise.all([
+                                    ...Object.keys(privateSpace)
+                                        .map(
+                                            (key) => exportsService.saveFile( JSON.stringify(privateSpace[key]) , 'json' , key + '.' + 'json' )
+                                        )
+                                ])
+                            }
+                        } else {
+                            if (options.hasOwnProperty('pretty') && options.pretty === true) {
+                                console.log(chalk.blue(privateSpace.space.title))
+                                console.log(chalk.blue(privateSpace.space.description))
+                                console.log(chalk.blue(privateSpace.space.subtitle))
+                                if (privateSpace.space.hasOwnProperty('isActive') && privateSpace.space.isActive) {
+                                    console.log(chalk.green('Is Active'));
+                                } else {
+                                    console.log(chalk.red('Is Not Active'));
+                                }
+                                if (privateSpace.space.hasOwnProperty('templates')) {
+                                    console.log(chalk.blue(privateSpace.space.templates.length + ' Templates'))
+                                }
+
+                                if (needUsers) {
+                                    console.log(privateSpace.users.length + ' Registered Users');
+                                }
+
+                            } else {
+                                console.log(JSON.stringify(privateSpace) )
+                            }
+                        }
+
+                    })
+                    .catch((err) => {
+                        console.log(err);
+                    })
+                    .finally(() => {
+                        mongoService.closeDB();
+                    })
+            }
+
         }
 
     });

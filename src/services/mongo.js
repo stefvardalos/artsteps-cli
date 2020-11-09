@@ -24,10 +24,13 @@ const test = () => {
         })
 }
 
-const getUsers = ( userMails = []) => {
+const getUsers = ( userMails = [] , privateSpaceID = '') => {
     let query = {};
     if (userMails.length) {
-        query = {  'emails.0.address' : { $in: userMails } }
+        query = Object.assign( query , {  'emails.0.address' : { $in: userMails } } )
+    }
+    if (privateSpaceID.length > 0) {
+        query = Object.assign( query , { 'spaces' : privateSpaceID })
     }
     return connectDB()
         .then( (connectedClient) => {
@@ -46,6 +49,23 @@ const getUsers = ( userMails = []) => {
                 }
             });
             return Promise.resolve(usersObjects);
+        })
+        .catch((err) => {
+            console.log(err);
+        })
+}
+
+const getSpaces = ( subdomain ) => {
+    let query = {};
+    if (subdomain) {
+        query = { subdomain : subdomain }
+    }
+    return connectDB()
+        .then( (connectedClient) => {
+            const db = connectedClient.db(dbName);
+            return db.collection('spaces')
+                .find( query )
+                .toArray();
         })
         .catch((err) => {
             console.log(err);
@@ -376,6 +396,7 @@ module.exports = {
     test ,
     getExhibitions ,
     getExhibition ,
+    getSpaces ,
     getUsers ,
     getSubscribers ,
     cloneExhibition
