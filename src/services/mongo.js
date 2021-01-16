@@ -24,6 +24,38 @@ const test = () => {
         })
 }
 
+const getUsersByID = ( userIds = [] , privateSpaceID ) => {
+    let query = {};
+    if (userIds.length > 0) {
+        query = Object.assign( query , {  '_id' : { $in: userIds } } )
+    }
+    if (privateSpaceID) {
+        query = Object.assign( query , { 'spaces' : privateSpaceID })
+    }
+    return connectDB()
+        .then( (connectedClient) => {
+            const db = connectedClient.db(dbName);
+            return db.collection('users')
+                .find( query )
+                .toArray();
+        })
+        .then( (usersObjects ) => {
+            usersObjects.sort( (a, b) => {
+                const A = a._id, B = b._id;
+                if (userIds.indexOf(A) > userIds.indexOf(B)) {
+                    return 1;
+                } else {
+                    return -1;
+                }
+            });
+            return Promise.resolve(usersObjects);
+        })
+        .catch((err) => {
+            console.log(err);
+        })
+
+}
+
 const getUsers = ( userMails = [] , privateSpaceID) => {
     let query = {};
     if (userMails.length > 0) {
@@ -90,6 +122,41 @@ const getExhibitions = ( userID ) => {
     if (userID) {
         query = { user : userID }
     }
+
+    return connectDB()
+        .then( (connectedClient) => {
+            const db = connectedClient.db(dbName);
+            return db.collection('exhibitions')
+                .find( query )
+                .toArray();
+        })
+        .catch((err) => {
+            console.log(err);
+        })
+
+}
+
+const getExhibitionsForTimeLimit = ( field , startMonth , endMonth , year ) => {
+    if (startMonth.length === 1) {
+        startMonth = '0' + startMonth;
+    }
+    if (endMonth.length === 1) {
+        endMonth = '0' + endMonth;
+    }
+    const startDate = new Date(year + '-'+startMonth+'-01');
+    let lastDay = 31;
+    let endDate = new Date(year + '-'+endMonth+'-' + lastDay);
+    while (endDate.toString() === 'Invalid Date') {
+        lastDay = lastDay - 1;
+        endDate = new Date(year + '-'+endMonth+'-' + lastDay);
+    }
+    let query = {};
+    query[field] = {
+        '$gte' : startDate ,
+        '$lte' : endDate
+    }
+
+    query.published = true;
 
     return connectDB()
         .then( (connectedClient) => {
@@ -366,6 +433,21 @@ const cloneExhibition = ( exhibitionObject , oldUserID , newUserID , newExhibiti
 }
 
 
+
+const getCategories = ( ) => {
+    return connectDB()
+        .then( (connectedClient) => {
+            const db = connectedClient.db(dbName);
+            return db.collection('categories')
+                .find({} )
+                .toArray();
+        })
+        .catch((err) => {
+            console.log(err);
+        })
+}
+
+
 const connectDB = () => {
 
     if (connectedClient) {
@@ -394,10 +476,13 @@ module.exports = {
     connectDB,
     closeDB ,
     test ,
+    getCategories,
     getExhibitions ,
+    getExhibitionsForTimeLimit ,
     getExhibition ,
     getSpaces ,
     getUsers ,
+    getUsersByID ,
     getSubscribers ,
     cloneExhibition
 }

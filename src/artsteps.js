@@ -126,6 +126,107 @@ program
         }
     });
 
+
+//TODO
+program
+    .command('getStatistics')
+    .description('Get Time Limit Statistics ')
+    .option('-s, --startMonth [startMonth]', 'Starting Month Numeric')
+    .option('-e, --endMonth [endMonth] ', 'Ending Month Numeric')
+    .action( ( options ) => {
+
+        if (settingsService.checkSettings()) {
+
+            console.log(options.startMonth);
+            console.log(options.endMonth);
+
+            let groupByCategory, groupByDate, groupByNbrArtifacts, uniqueUsers ;
+
+
+            if (
+                options.hasOwnProperty('startMonth') &&
+                options.startMonth &&
+                !isNaN(options.startMonth) &&
+                parseInt(options.startMonth) >= 1 &&
+                parseInt(options.startMonth) <= 12 &&
+                options.hasOwnProperty('endMonth') &&
+                options.endMonth &&
+                !isNaN(options.endMonth) &&
+                parseInt(options.endMonth) >= 1 &&
+                parseInt(options.endMonth) <= 12
+            ) {
+                Promise.all([
+                    mongoService.getCategories(),
+                    mongoService.getExhibitionsForTimeLimit( 'publishedAt' , options.startMonth , options.endMonth , '2020')
+                ])
+                    .then(( [ categories , exhibitions] ) => {
+
+                        console.log(categories);
+                        console.log(exhibitions.length);
+
+                        let allUsers = exhibitions.reduce((r, a) => {
+                            r.allUsers = [ ...r.allUsers || [] , a.user]
+                            return r;
+                        }, {});
+                        uniqueUsers = allUsers.allUsers.filter((user , index , self) => {
+                            return self.indexOf(user) === index;
+                        })
+
+
+                        groupByCategory = exhibitions.reduce((r, a) => {
+                            a.categories.forEach((categoryId) => {
+                                r[categoryId] = [...r[categoryId] || [], a]
+                            });
+                            return r;
+                        }, {});
+                        groupByDate = exhibitions.reduce((r, a) => {
+                            const publishedDate = a.publishedAt.getDate() + '/' + ( a.publishedAt.getMonth() + 1 );
+                            r[publishedDate] = [...r[publishedDate] || [], a];
+                            return r;
+                        }, {});
+
+                        groupByNbrArtifacts = exhibitions.reduce((r, a) => {
+                            let artifactSum;
+                            if (a.model.artifacts.length < 30) {
+                                artifactSum = 'small';
+                            } else if ( a.model.artifacts.length < 80 ) {
+                                artifactSum = 'medium';
+                            } else {
+                                artifactSum = 'big';
+                            }
+                            r[artifactSum] = [...r[artifactSum] || [], a];
+                            return r;
+                        }, {});
+
+                        // console.log(Object.keys(groupByCategory));
+                        // console.log(Object.keys(groupByDate));
+                        // console.log(Object.keys(groupByNbrArtifacts));
+
+                        // console.log(allUsers);
+                        console.log(uniqueUsers);
+
+                        return mongoService.getUsersByID(uniqueUsers)
+                    })
+                    .then(( users )=> {
+
+                        console.log(users);
+
+                        // if ( options.hasOwnProperty('json') && options.json === true ) {
+                        //     console.log(JSON.stringify(exhibitionsList) )
+                        // } else {
+                        //     console.log(exhibitionsList.length)
+                        // }
+                    })
+                    .finally(() => {
+                        mongoService.closeDB();
+                    })
+            } else {
+                console.log(chalk.red('Wrong Arguments'));
+            }
+
+        }
+    });
+
 program
     .command('getSubscribers')
     .description('Get All Users Subscribed to Newsletter')
@@ -231,6 +332,7 @@ program
         }
 
     });
+
 program
     .command('getPrivateSpace')
     .description('Get Details of a Private Spaces on Environment')
@@ -313,6 +415,75 @@ program
         }
 
     });
+
+program
+    .command('getCountExhibitions')
+    .description('Get Count of Exhibitions Exchibitions ')
+    .option('-u, --userEmail [userEmail]', 'User\'s  email')
+    .option('-y, --year [year]', 'Limit for Specific Year')
+    .option('-g, --groupBy [groupBy]', 'Field to Group By')
+    .option('-j, --json ', 'Export to JSON data')
+    .action( ( options ) => {
+
+        if (settingsService.checkSettings()) {
+            let exhibitionPromise;
+            if ( options.hasOwnProperty('userEmail') && options.userEmail.length > 0) {
+                exhibitionPromise = mongoService.getUsers([options.userEmail])
+                    .then((userList) => {
+                        return mongoService.getExhibitions(userList[0]._id)
+                    })
+            } else if ( options.hasOwnProperty('year') && options.year.length > 0){
+                exhibitionPromise = mongoService.getExhibitionsForTimeLimit( 'createdAt' , '1' , '12' , options.year)
+            } else {
+                exhibitionPromise = mongoService.getExhibitions();
+            }
+            exhibitionPromise
+                .then(( exhibitionsList )=> {
+                    if (options.hasOwnProperty('groupBy') && options.groupBy.length > 0) {
+                        return mongoService.getCategories()
+                            .then((categoriesList) => {
+                                let groupByCategory = exhibitionsList.reduce((r, a) => {
+                                    a.categories.forEach((categoryId) => {
+                                        r[categoryId] = [...r[categoryId] || [], a]
+                                    });
+                                    return r;
+                                }, {});
+
+                                let categoriesUsed = Object.keys(groupByCategory);
+                                const grouped = {};
+                                categoriesUsed.forEach((catID) => {
+                                    let catName = categoriesList.find(cat => cat._id == catID).title;
+                                    grouped[catName] = groupByCategory[catID];
+                                })
+
+                                return Promise.resolve(grouped);
+                            })
+
+                    } else {
+                        return Promise.resolve(exhibitionsList);
+                    }
+                })
+                .then((exhibitionsList) => {
+                    if ( options.hasOwnProperty('json') && options.json === true ) {
+                        console.log(JSON.stringify(exhibitionsList) )
+                    } else {
+                        if (Array.isArray(exhibitionsList)) {
+                            console.log(exhibitionsList.length)
+                        } else {
+                            const groupKeys = Object.keys(exhibitionsList);
+                            groupKeys.forEach((key) => {
+                                console.log(key + '   =   ' + exhibitionsList[key].length);
+                            })
+                        }
+                    }
+                })
+                .finally(() => {
+                    mongoService.closeDB();
+                })
+        }
+    });
+
+
 
 program
     .command('info')
